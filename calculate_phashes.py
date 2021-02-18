@@ -25,20 +25,22 @@ parser.add_option("-o", "--output", dest='output', default='phashes.txt',help="f
 IMAGE_DIR = options.directory
 HASHES = options.output
 
-num_workers = 8
+num_workers = 2
+
 try:
     imagehash_version = float(imagehash.__version__)
 except AttributeError:
     imagehash_version=3.5
 def list_files(images_dir):
         # reading filanmes of the images from directory
-        file_names = []
-        count = 0
+        # file_names = []
+        # count = 0
         for root, dirs, files in os.walk(images_dir):
             for file in files:
-                file_names.append('%s/%s' %(root, file))
-                count +=1
-        return file_names
+                yield '%s/%s' %(root, file)
+                # file_names.append('%s/%s' %(root, file))
+                # count +=1
+        # return file_names
 
 
 def calculate_hash(in_queue, out_list):
@@ -49,11 +51,11 @@ def calculate_hash(in_queue, out_list):
         except Queue.Empty: 
             break
         line_no, line = item
-        if line_no % 10000 == 0:
-            output = open(HASHES, 'w')
-            for result in out_list:
-                output.write(result + '\n')
-            output.close()
+        # if line_no % 10000 == 0:
+        #     output = open(HASHES, 'w')
+        #     for result in out_list:
+        #         output.write(result + '\n')
+        #     output.close()
         if line == None:
             return
         try:
@@ -62,7 +64,12 @@ def calculate_hash(in_queue, out_list):
                 image_phash = imagehash.old_hex_to_hash(str(imagehash.phash(Image.open(line))))
             else:
                 image_phash = imagehash.phash(Image.open(line))
-            out_list.append(str(line) + '\t' + str(image_phash))
+
+            result = str(line) + '\t' + str(image_phash)
+            with open(HASHES, 'a+') as f:
+                f.write(result + '\n')
+                out_list.append(1)
+            # out_list.append(str(line) + '\t' + str(image_phash))
         except Exception as e:
             print(str(e))
             pass
@@ -92,7 +99,3 @@ if __name__ == "__main__":
 
     # get the results
     print("Done. Writing to file %d phashes" %(len(results)))
-    output = open(HASHES, 'w')
-    for result in results:
-        output.write(result + '\n')
-    output.close()
